@@ -1,0 +1,195 @@
+_schema-version: 3.3.0
+ID: CAP_APP
+version: 1.0.0
+description: "A simple CAP project."
+parameters:
+  enable-parallel-deployments: true
+  deploy_mode: html5-repo
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production
+modules:
+  - name: CAP_APP-srv
+    type: nodejs
+    path: gen/srv
+    parameters:
+      buildpack: nodejs_buildpack
+      readiness-health-check-type: http
+      readiness-health-check-http-endpoint: /health
+    build-parameters:
+      builder: npm
+    provides:
+      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+        properties:
+          srv-url: ${default-url}
+    requires:
+      - name: CAP_APP-auth
+      - name: CAP_APP-db
+      - name: CAP_APP-connectivity
+      - name: CAP_APP-destination
+
+  - name: CAP_APP-db-deployer
+    type: hdb
+    path: gen/db
+    parameters:
+      buildpack: nodejs_buildpack
+    requires:
+      - name: CAP_APP-db
+
+  - name: CAP_APP
+    type: approuter.nodejs
+    path: app/router
+    parameters:
+      keep-existing-routes: true
+      disk-quota: 256M
+      memory: 256M
+    requires:
+      - name: srv-api
+        group: destinations
+        properties:
+          name: srv-api # must be used in xs-app.json as well
+          url: ~{srv-url}
+          forwardAuthToken: true
+      - name: CAP_APP-auth
+      - name: CAP_APP-destination
+      - name: CAP_APP-html5-runtime
+      - name: CAP_APP-portal
+
+  - name: CAP_APP-app-deployer
+    type: com.sap.application.content
+    path: gen
+    requires:
+      - name: CAP_APP-html5-repo-host
+        parameters:
+          content-target: true
+    build-parameters:
+      build-result: app/
+      requires:
+        - name: CAP_APPadminbooks
+          artifacts:
+            - admin-books.zip
+          target-path: app/
+        - name: CAP_APPbrowse
+          artifacts:
+            - browse.zip
+          target-path: app/
+
+  - name: CAP_APPadminbooks
+    type: html5
+    path: app/admin-books
+    build-parameters:
+      build-result: dist
+      builder: custom
+      commands:
+        - npm ci
+        - npm run build
+      supported-platforms:
+        []
+  - name: CAP_APPbrowse
+    type: html5
+    path: app/browse
+    build-parameters:
+      build-result: dist
+      builder: custom
+      commands:
+        - npm ci
+        - npm run build
+      supported-platforms:
+        []
+
+  - name: CAP_APP-portal-deployer
+    type: com.sap.application.content
+    path: app/portal
+    requires:
+      - name: CAP_APP-portal
+        parameters:
+          content-target: true
+          service-key:
+            name: CAP_APP-portal-key
+            config:
+              content-endpoint: developer
+      - name: CAP_APP-auth
+      - name: CAP_APP-html5-repo-host
+      - name: CAP_APP-app-deployer
+    deployed-after:
+      - CAP_APP-app-deployer
+  - name: notification-content-deployment
+    type: nodejs
+    path: gen/srv
+    parameters:
+      no-route: true
+      no-start: true
+      memory: 256MB
+      disk-quota: 1GB
+      tasks:
+        - name: notification-content-deployment
+          command: "node node_modules/@cap-js/notifications/lib/content-deployment.js"
+          memory: 256MB
+          disk-quota: 1GB
+    requires:
+      - name: CAP_APP-destination
+      - name: CAP_APP-auth
+      - name: CAP_APP-connectivity
+
+resources:
+  - name: CAP_APP-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: CAP_APP-${org}-${space}
+        tenant-mode: dedicated
+  - name: CAP_APP-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+  - name: CAP_APP-connectivity
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: connectivity
+      service-plan: lite
+  - name: CAP_APP-destination
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: destination
+      service-plan: lite
+      config:
+        HTML5Runtime_enabled: true
+        init_data:
+          instance:
+            existing_destinations_policy: update
+            destinations:
+              - Name: CAP_APP-srv-api
+                URL: ~{srv-api/srv-url}
+                Authentication: OAuth2UserTokenExchange
+                Type: HTTP
+                ProxyType: Internet
+                HTML5.ForwardAuthToken: true
+                HTML5.DynamicDestination: true
+              - Authentication: NoAuthentication
+                Name: ui5
+                ProxyType: Internet
+                Type: HTTP
+                URL: https://ui5.sap.com
+
+  - name: CAP_APP-html5-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
+  - name: CAP_APP-html5-runtime
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-runtime
+  - name: CAP_APP-portal
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: portal
+      service-plan: standard
