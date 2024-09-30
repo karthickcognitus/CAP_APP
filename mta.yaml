@@ -1,7 +1,7 @@
 _schema-version: 3.3.0
 ID: CAP_APP
 version: 1.0.0
-description: "A simple CAP project."
+description: A simple CAP project.
 parameters:
   enable-parallel-deployments: true
   deploy_mode: html5-repo
@@ -22,15 +22,14 @@ modules:
     build-parameters:
       builder: npm
     provides:
-      - name: srv-api # required by consumers of CAP services (e.g. approuter)
+      - name: srv-api
         properties:
-          srv-url: ${default-url}
+          srv-url: '${default-url}'
     requires:
       - name: CAP_APP-auth
       - name: CAP_APP-db
       - name: CAP_APP-connectivity
       - name: CAP_APP-destination
-
   - name: CAP_APP-db-deployer
     type: hdb
     path: gen/db
@@ -38,7 +37,6 @@ modules:
       buildpack: nodejs_buildpack
     requires:
       - name: CAP_APP-db
-
   - name: CAP_APP
     type: approuter.nodejs
     path: app/router
@@ -50,14 +48,13 @@ modules:
       - name: srv-api
         group: destinations
         properties:
-          name: srv-api # must be used in xs-app.json as well
-          url: ~{srv-url}
+          name: srv-api
+          url: '~{srv-url}'
           forwardAuthToken: true
       - name: CAP_APP-auth
       - name: CAP_APP-destination
       - name: CAP_APP-html5-runtime
       - name: CAP_APP-portal
-
   - name: CAP_APP-app-deployer
     type: com.sap.application.content
     path: gen
@@ -76,7 +73,6 @@ modules:
           artifacts:
             - browse.zip
           target-path: app/
-
   - name: CAP_APPadminbooks
     type: html5
     path: app/admin-books
@@ -86,8 +82,7 @@ modules:
       commands:
         - npm ci
         - npm run build
-      supported-platforms:
-        []
+      supported-platforms: []
   - name: CAP_APPbrowse
     type: html5
     path: app/browse
@@ -97,9 +92,7 @@ modules:
       commands:
         - npm ci
         - npm run build
-      supported-platforms:
-        []
-
+      supported-platforms: []
   - name: CAP_APP-portal-deployer
     type: com.sap.application.content
     path: app/portal
@@ -126,14 +119,13 @@ modules:
       disk-quota: 1GB
       tasks:
         - name: notification-content-deployment
-          command: "node node_modules/@cap-js/notifications/lib/content-deployment.js"
+          command: node node_modules/@cap-js/notifications/lib/content-deployment.js
           memory: 256MB
           disk-quota: 1GB
     requires:
       - name: CAP_APP-destination
       - name: CAP_APP-auth
       - name: CAP_APP-connectivity
-
 resources:
   - name: CAP_APP-auth
     type: org.cloudfoundry.managed-service
@@ -142,7 +134,7 @@ resources:
       service-plan: application
       path: ./xs-security.json
       config:
-        xsappname: CAP_APP-${org}-${space}
+        xsappname: 'CAP_APP-${org}-${space}'
         tenant-mode: dedicated
   - name: CAP_APP-db
     type: com.sap.xs.hdi-container
@@ -166,7 +158,7 @@ resources:
             existing_destinations_policy: update
             destinations:
               - Name: CAP_APP-srv-api
-                URL: ~{srv-api/srv-url}
+                URL: '~{srv-api/srv-url}'
                 Authentication: OAuth2UserTokenExchange
                 Type: HTTP
                 ProxyType: Internet
@@ -176,8 +168,7 @@ resources:
                 Name: ui5
                 ProxyType: Internet
                 Type: HTTP
-                URL: https://ui5.sap.com
-
+                URL: 'https://ui5.sap.com'
   - name: CAP_APP-html5-repo-host
     type: org.cloudfoundry.managed-service
     parameters:

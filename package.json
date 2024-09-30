@@ -2,7 +2,7 @@
   "name": "CAP_APP",
   "version": "1.0.0",
   "description": "A simple CAP project.",
-  "repository": "<Add your repository here>",
+  "repository": "https://github.com/karthickcognitus/CAP_APP",
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
