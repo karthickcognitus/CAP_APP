@@ -6,11 +6,11 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
-    "@sap/cds": "^8",
-    "express": "^4",
-    "@sap/xssec": "^4",
     "@cap-js/hana": "^1",
-    "@cap-js/notifications": "*"
+    "@sap/cds": "^8",
+    "@sap/hana-client": "^2.22.27",
+    "@sap/xssec": "^4",
+    "express": "^4"
   },
   "devDependencies": {
     "@cap-js/cds-types": "^0.6",
@@ -23,6 +23,8 @@
   "sapux": [
     "app/admin-books",
     "app/browse"
+
+
   ],
   "cds": {
     "requires": {
@@ -37,3 +39,6 @@
     }
   }
 }
+
+
+
